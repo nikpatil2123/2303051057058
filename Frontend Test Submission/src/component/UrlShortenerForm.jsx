@@ -13,7 +13,7 @@ function isValidUrl(url) {
 }
 
 function isValidShortcode(code) {
-  return /^[a-zA-Z0-9]{3,20}$/.test(code); // Alphanumeric, 3-20 chars
+  return /^[a-zA-Z0-9]{3,20}$/.test(code); 
 }
 
 const emptyRow = { url: '', validity: '', shortcode: '', error: {} };
@@ -61,12 +61,22 @@ export default function UrlShortenerForm() {
     return valid;
   };
 
+  const usedShortcodes = new Set();
+
+  const generateUniqueShortcode = (customCode) => {
+    let code = customCode || Math.random().toString(36).substring(2, 8);
+    while (usedShortcodes.has(code)) {
+      code = Math.random().toString(36).substring(2, 8);
+    }
+    usedShortcodes.add(code);
+    return code;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
-    // Simulate API call and result
     const newResults = rows.map((row) => {
-      const code = row.shortcode || Math.random().toString(36).substring(2, 8);
+      const code = generateUniqueShortcode(row.shortcode);
       const validity = row.validity ? parseInt(row.validity) : DEFAULT_VALIDITY;
       const expiry = new Date(Date.now() + validity * 60000).toLocaleString();
       return {
@@ -74,9 +84,18 @@ export default function UrlShortenerForm() {
         short: `${window.location.origin}/${code}`,
         expiry,
         code,
+        creationDate: new Date().toLocaleString(),
+        clicks: 0,
+        clickDetails: [],
       };
     });
     setResults(newResults);
+
+    const existingStatistics = JSON.parse(localStorage.getItem('statistics')) || [];
+    const updatedStatistics = [...existingStatistics, ...newResults];
+    localStorage.setItem('statistics', JSON.stringify(updatedStatistics));
+
+    console.log('Updated statistics in localStorage:', updatedStatistics);
   };
 
   return (
